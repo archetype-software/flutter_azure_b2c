@@ -34,6 +34,9 @@ flutter:
       android:
         package: com.nodriver.flutter_azure_b2c
         pluginClass: B2CPlugin
+      ios:
+        package: com.nodriver.flutter_azure_b2c
+        pluginClass: SwiftFlutterAzureB2cPlugin
       web:
         pluginClass: B2CPluginWeb
         fileName: flutter_azure_b2c_web.dart
