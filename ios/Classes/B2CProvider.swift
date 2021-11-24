@@ -178,7 +178,8 @@ class B2CProvider {
         
         b2cApp!.accountsFromDevice(for: msalParameters) { accs, err in
             if let error = err {
-                print("error in load accounts")
+                print("[AzureB2C] Error loading accounts. Please ensure you have added keychain " +
+                      "group com.microsoft.adalcache to your project's entitlements")
                 self.operationListener.onEvent(operationResult: B2COperationResult(
                     source: source,
                     reason: B2COperationState.CLIENT_ERROR,
