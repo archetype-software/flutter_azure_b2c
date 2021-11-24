@@ -167,9 +167,52 @@ class B2CProvider {
     }
     
     /**
+     * Returns a list of stored subjects. Each subject represents a stored B2C user.
+     *
+     * Subjects are used to identify specific users and perform operations on them.
+     *
+     * @return a list of stored user represented by their subjects
+     */
+    func getSubjects() -> [String] {
+        var subjects: [String] = []
+        users!.forEach { user in
+            subjects.append(user.subject!)
+        }
+        return subjects
+    }
+    
+    func hasSubject(subject: String) -> Bool {
+        return findB2CUser(subject: subject) != nil
+    }
+
+    /**
+     * Get user claims.
+     * @return the user claims or null if user is not stored
+     */
+    func getClaims(subject: String) -> [String: Any]? {
+        let subUser: B2CUser? = findB2CUser(subject: subject)
+        return subUser?.claims ?? nil
+    }
+    
+    /**
+     * Get user preferred username.
+     * @return the preferred username or null if user is not stored
+     */
+    func getUsername(subject: String) -> String? {
+        let subUser: B2CUser? = findB2CUser(subject: subject)
+        return subUser?.username ?? nil
+    }
+    
+    private func findB2CUser(subject: String) -> B2CUser? {
+        return users!.first { user in
+            return user.subject == subject
+        }
+    }
+    
+    /**
      * Load signed-in accounts, if there are any present.
      */
-    func loadAccounts(source: String) {
+    private func loadAccounts(source: String) {
         if (b2cApp == nil) { return }
         
         let msalParameters = MSALAccountEnumerationParameters()

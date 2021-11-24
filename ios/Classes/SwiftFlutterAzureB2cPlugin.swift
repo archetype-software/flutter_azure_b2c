@@ -51,6 +51,40 @@ public class SwiftFlutterAzureB2cPlugin: NSObject, FlutterPlugin, IB2COperationL
             let configuration: B2CConfigurationIOS = provider.getConfiguration()
             result(configuration.toDictionary())
         }
+        
+        else if call.method == "getSubjects" {
+            let subjects = provider.getSubjects()
+            result(["subjects": subjects])
+        }
+        
+        else if call.method == "hasSubject" {
+            let args = call.arguments as! [String: Any]
+            let subject = args["subject"] as! String
+            result(provider.hasSubject(subject: subject))
+        }
+        
+        else if call.method == "getSubjectInfo" {
+            let args = call.arguments as! [String: Any]
+            let subject = args["subject"] as! String
+            
+            let usernm = provider.getUsername(subject: subject)
+            let clms = provider.getClaims(subject: subject)
+            
+            if let username = usernm, let claims = clms {
+                result([
+                    "username": username,
+                    "claims": claims
+                ])
+            }
+            else {
+                // TODO: Implement an error flag for iOS method calls, since we don't have the result.error option
+//                result.error(
+//                    "SubjectNotExist",
+//                    "Unable to find stored user: $subject", null
+//                )
+
+            }
+        }
     }
     
     /**
