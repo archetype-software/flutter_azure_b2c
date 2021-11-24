@@ -1,6 +1,7 @@
 PODS:
   - Flutter (1.0.0)
   - flutter_azure_b2c (0.0.1):
+    - Flutter
     - MSAL
   - MSAL (1.1.24):
     - MSAL/app-lib (= 1.1.24)
@@ -22,7 +23,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: 434fef37c0980e73bb6479ef766c45957d4b510c
-  flutter_azure_b2c: 5d370a755206244202c8f56a39acbfabd1e0dcf9
+  flutter_azure_b2c: 6d7007a31499f868d8c68e07af5ea87d0ccc3fe3
   MSAL: fc6dce17fe34cd14d711651c67f46bff5429ad2d
 
 PODFILE CHECKSUM: aafe91acc616949ddb318b77800a7f51bffa2a4c
