@@ -26,6 +26,12 @@ class B2CAuthority {
     var authorityType: String
     var isDefault: Bool
     
+    init(authorityUrl: String, authorityType: String, isDefault: Bool) {
+        self.authorityUrl = authorityUrl
+        self.authorityType = authorityType
+        self.isDefault = isDefault
+    }
+    
     init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
         self.authorityUrl = dictionary["authority_url"] as! String
         self.authorityType = dictionary["type"] as! String

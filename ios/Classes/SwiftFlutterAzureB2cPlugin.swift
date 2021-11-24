@@ -46,6 +46,18 @@ public class SwiftFlutterAzureB2cPlugin: NSObject, FlutterPlugin, IB2COperationL
             provider.policyTriggerInteractive(policyName: policyName, scopes: scopes, loginHint: loginHint)
             result(nil)
         }
+        
+        else if call.method == "getConfiguration" {
+            let configuration: B2CConfigurationIOS = provider.getConfiguration()
+            result([
+                "clientId": configuration.clientId,
+                "redirectUri": configuration.redirectUri,
+                "accountMode": configuration.accountMode,
+                "brokerRedirectUriRegistered": configuration.brokerRedirectUriRegistered,
+                "authorities": configuration.authorities,
+                "defaultScopes": configuration.defaultScopes ?? []
+            ])
+        }
     }
     
     /**

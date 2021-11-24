@@ -147,13 +147,28 @@ class B2CProvider {
             parameters.authority = authority
         }
         
-        b2cApp.acquireToken(with: parameters, completionBlock: <#T##MSALCompletionBlock##MSALCompletionBlock##(MSALResult?, Error?) -> Void#>)
+        b2cApp.acquireToken(
+            with: parameters,
+            completionBlock: authInteractiveCallback(source: B2CProvider.POLICY_TRIGGER_INTERACTIVE)
+        )
     }
     
     func initWebViewParams() {
         self.webViewParameters = MSALWebviewParameters(authPresentationViewController: controller)
     }
     
+    /**
+     * Get provider configuration.
+     *
+     * @return the provider configuration
+     */
+    func getConfiguration() -> B2CConfigurationIOS {
+        return b2cConfig!
+    }
+    
+    /**
+     * Load signed-in accounts, if there are any present.
+     */
     func loadAccounts(source: String) {
         if (b2cApp == nil) { return }
         
