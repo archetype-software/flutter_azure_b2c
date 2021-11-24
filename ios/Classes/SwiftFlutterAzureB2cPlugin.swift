@@ -49,14 +49,7 @@ public class SwiftFlutterAzureB2cPlugin: NSObject, FlutterPlugin, IB2COperationL
         
         else if call.method == "getConfiguration" {
             let configuration: B2CConfigurationIOS = provider.getConfiguration()
-            result([
-                "clientId": configuration.clientId,
-                "redirectUri": configuration.redirectUri,
-                "accountMode": configuration.accountMode,
-                "brokerRedirectUriRegistered": configuration.brokerRedirectUriRegistered,
-                "authorities": configuration.authorities,
-                "defaultScopes": configuration.defaultScopes ?? []
-            ])
+            result(configuration.toDictionary())
         }
     }
     
@@ -64,11 +57,7 @@ public class SwiftFlutterAzureB2cPlugin: NSObject, FlutterPlugin, IB2COperationL
      * B2C provider listener.
      */
     func onEvent(operationResult: B2COperationResult) {
-        channel.invokeMethod("onEvent", arguments: [
-            "source": operationResult.source,
-            "reason": operationResult.reason,
-            "data": operationResult.data
-        ])
+        channel.invokeMethod("onEvent", arguments: operationResult.toDictionary())
     }
     
     /**

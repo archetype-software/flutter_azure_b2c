@@ -20,6 +20,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_azure_b2c/B2CAccessToken.dart';
@@ -364,16 +365,29 @@ class AzureB2C {
     print("[AzureB2C] [getConfiguration] invoked...");
     var rawRes = await _channel.invokeMethod('getConfiguration');
     if (rawRes != null) {
-      final Map<String, dynamic>? res = json.decode(rawRes);
-      print("[AzureB2C] [getConfiguration] data: $res");
-      return B2CConfiguration.fromJson(res!);
+      if (Platform.isIOS) {
+        final Map<String, dynamic> res = (rawRes as Map<dynamic, dynamic>)
+            .map((key, value) => MapEntry(key.toString(), value));
+        return B2CConfiguration.fromJson(res);
+      }
+      else {
+        final Map<String, dynamic>? res = json.decode(rawRes);
+        print("[AzureB2C] [getConfiguration] data: $res");
+        return B2CConfiguration.fromJson(res!);
+      }
     } else
       return null;
   }
 
   static Future<void> _methodCallHandler(MethodCall call) async {
     print("[AzureB2C] Callback received...");
-    var result = B2COperationResult.fromJson(json.decode(call.arguments));
+
+    var result = Platform.isIOS ?
+      B2COperationResult.fromJson(
+        (call.arguments as Map<dynamic, dynamic>).map((key, value) => MapEntry(key.toString(), value))
+      ) :
+      B2COperationResult.fromJson(json.decode(call.arguments));
+
     print("[AzureB2C] Callback data: ${json.encode(result)}");
 
     for (var callback in _callbacks[result.source]!) {

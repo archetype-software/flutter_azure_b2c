@@ -124,7 +124,7 @@ class B2CProvider {
                 operationListener.onEvent(operationResult: B2COperationResult(
                     source: B2CProvider.INIT,
                     reason: B2COperationState.CLIENT_ERROR,
-                    data: error
+                    data: error.localizedDescription
                 ))
             }
         }
@@ -178,21 +178,27 @@ class B2CProvider {
         
         b2cApp!.accountsFromDevice(for: msalParameters) { accs, err in
             if let error = err {
+                print("error in load accounts")
                 self.operationListener.onEvent(operationResult: B2COperationResult(
                     source: source,
                     reason: B2COperationState.CLIENT_ERROR,
-                    data: error
+                    data: error.localizedDescription
                 ))
-                return
+                // return
             }
             if let accounts = accs {
                 self.users = B2CUser.getB2CUsersFromAccountList(accounts: accounts)
                 self.operationListener.onEvent(operationResult: B2COperationResult(
-                    source: B2CProvider.INIT,
+                    source: source,
                     reason: B2COperationState.SUCCESS,
                     data: nil
                 ))
             }
+            self.operationListener.onEvent(operationResult: B2COperationResult(
+                source: source,
+                reason: B2COperationState.SUCCESS,
+                data: nil
+            ))
         }
     }
     
@@ -212,7 +218,7 @@ class B2CProvider {
             self.operationListener.onEvent(operationResult: B2COperationResult(
                 source: source,
                 reason: B2COperationState.CLIENT_ERROR,
-                data: error
+                data: error.localizedDescription
             ))
             return nil
         }
@@ -241,7 +247,7 @@ class B2CProvider {
                     self.operationListener.onEvent(operationResult: B2COperationResult(
                         source: B2CProvider.POLICY_TRIGGER_INTERACTIVE,
                         reason: B2COperationState.PASSWORD_RESET,
-                        data: error
+                        data: error.localizedDescription
                     ))
                 }
                 else {
@@ -252,7 +258,7 @@ class B2CProvider {
                     self.operationListener.onEvent(operationResult: B2COperationResult(
                         source: B2CProvider.POLICY_TRIGGER_INTERACTIVE,
                         reason: B2COperationState.CLIENT_ERROR,
-                        data: error
+                        data: error.localizedDescription
                     ))
                     print("Error: \(error.localizedDescription)")
                 }

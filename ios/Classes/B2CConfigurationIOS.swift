@@ -37,6 +37,14 @@ class B2CAuthority {
         self.authorityType = dictionary["type"] as! String
         self.isDefault = dictionary["default"] as! Bool
     }
+    
+    func toDictionary() -> [String: Any] {
+        return [
+            "authority_url": authorityUrl,
+            "type": authorityType,
+            "default": isDefault
+        ]
+    }
 }
 
 class B2CConfigurationIOS {
@@ -57,5 +65,18 @@ class B2CConfigurationIOS {
         self.brokerRedirectUriRegistered = brokerRedirectUriRegistered
         self.authorities = authorities
         self.defaultScopes = defaultScopes
+    }
+    
+    func toDictionary() -> [String: Any] {
+        return [
+            "client_id": clientId,
+            "redirect_uri": redirectUri,
+            "authorities": authorities.map({ authority in
+                return authority.toDictionary()
+            }),
+            "account_mode": accountMode,
+            "broker_redirect_uri_registered": brokerRedirectUriRegistered,
+            "default_scopes": defaultScopes ?? []
+        ]
     }
 }

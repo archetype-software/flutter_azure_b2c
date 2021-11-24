@@ -18,6 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+import 'dart:io';
+
 /// Authority representation.
 class B2CAuthority {
   /// Complete URL of the authority.
@@ -110,8 +112,15 @@ class B2CConfiguration {
     this.clientId = data["client_id"];
     this.redirectURI = data["redirect_uri"];
     this.authorities = <B2CAuthority>[];
-    for (Map<String, dynamic> authData in data["authorities"]) {
-      this.authorities.add(B2CAuthority.fromJson(authData));
+    for (dynamic authData in data["authorities"]) {
+      if (Platform.isIOS) {
+        this.authorities.add(B2CAuthority.fromJson(
+          (authData as Map<dynamic, dynamic>).map((key, value) => MapEntry(key.toString(), value))
+        ));
+      }
+      else {
+        this.authorities.add(B2CAuthority.fromJson(authData as Map<String, dynamic>));
+      }
     }
 
     if (data.containsKey("cache_location"))

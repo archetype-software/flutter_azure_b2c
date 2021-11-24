@@ -30,6 +30,20 @@ enum B2COperationState {
     case SERVICE_ERROR
 }
 
+extension B2COperationState {
+    func toString() -> String {
+        switch self {
+        case .READY: return "READY"
+        case .SUCCESS: return "SUCCESS"
+        case .PASSWORD_RESET: return "PASSWORD_RESET"
+        case .USER_CANCELLED_OPERATION: return "USER_CANCELLED_OPERATION"
+        case .USER_INTERACTION_REQUIRED: return "USER_INTERACTION_REQUIRED"
+        case .CLIENT_ERROR: return "CLIENT_ERROR"
+        case .SERVICE_ERROR: return "SERVICE_ERROR"
+        }
+    }
+}
+
 class B2COperationResult {
     
     var source: String
@@ -40,6 +54,15 @@ class B2COperationResult {
         self.source = source
         self.reason = reason
         self.data = data
+    }
+    
+    func toDictionary() -> [String: Any] {
+        return [
+            "source": source,
+            "reason": reason.toString(),
+            "data": data ?? "",
+            "tag": "tag"
+        ]
     }
 }
 
