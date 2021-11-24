@@ -18,6 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+import 'package:flutter_azure_b2c/flutter_azure_b2c.dart';
+
 /// Utility class to manage and store users informations.
 class B2CUserInfo {
   /// Unique id string for each user. Dependant from the B2C configuration it
@@ -39,9 +41,12 @@ class B2CUserInfo {
     this.username = data["username"];
     this.claims = Map<String, dynamic>();
 
-    Map<String, dynamic> dClaims = data["claims"];
-    for (var key in dClaims.keys) {
-      this.claims[key] = dClaims[key];
+    //final Map<String, dynamic>? res = _parseChannelData(rawRes);
+    Map<String, dynamic>? dClaims = AzureB2C.parseChannelData(data["claims"]);
+    if (dClaims != null) {
+      for (var key in dClaims.keys) {
+        this.claims[key] = dClaims[key];
+      }
     }
   }
 

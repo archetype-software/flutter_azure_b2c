@@ -296,7 +296,7 @@ class AzureB2C {
     var rawRes = await _channel.invokeMethod('getSubjects');
 
     if (rawRes != null) {
-      final Map<String, dynamic>? res = json.decode(rawRes);
+      final Map<String, dynamic>? res = parseChannelData(rawRes);
       print("[AzureB2C] [getSubjects] data: $res");
 
       if (res!.containsKey("subjects")) {
@@ -324,7 +324,7 @@ class AzureB2C {
     var rawRes = await _channel.invokeMethod('getSubjectInfo', args);
 
     if (rawRes != null) {
-      final Map<String, dynamic>? res = json.decode(rawRes);
+      final Map<String, dynamic>? res = parseChannelData(rawRes);
       print("[AzureB2C] [getUserInfo] data: $res");
       return B2CUserInfo.fromJson(subject, res!);
     } else
@@ -345,7 +345,7 @@ class AzureB2C {
     var rawRes = await _channel.invokeMethod('getAccessToken', args);
 
     if (rawRes != null) {
-      final Map<String, dynamic>? res = json.decode(rawRes);
+      final Map<String, dynamic>? res = parseChannelData(rawRes);
       print("[AzureB2C] [getB2CAccessToken] data: $res");
       return B2CAccessToken.fromJson(res!);
     } else
@@ -365,33 +365,49 @@ class AzureB2C {
     print("[AzureB2C] [getConfiguration] invoked...");
     var rawRes = await _channel.invokeMethod('getConfiguration');
     if (rawRes != null) {
-      if (Platform.isIOS) {
-        final Map<String, dynamic> res = (rawRes as Map<dynamic, dynamic>)
-            .map((key, value) => MapEntry(key.toString(), value));
-        return B2CConfiguration.fromJson(res);
-      }
-      else {
-        final Map<String, dynamic>? res = json.decode(rawRes);
-        print("[AzureB2C] [getConfiguration] data: $res");
-        return B2CConfiguration.fromJson(res!);
-      }
+      final Map<String, dynamic>? res = parseChannelData(rawRes);
+      print("[AzureB2C] [getB2CAccessToken] data: $res");
+      return B2CConfiguration.fromJson(res!);
     } else
       return null;
   }
 
+  /// Parse data returned from a given platform. Necessary because the call
+  /// argument object signature coming from iOS is different than the object
+  /// signature from Web / Android.
+  ///
+  /// Returns a [Map] with keys of type [String] and values of type [dynamic] or
+  /// [null] if the argument data cannot be parsed.
+  ///
+  static Map<String, dynamic>? parseChannelData(dynamic data) {
+    try {
+      if (Platform.isIOS) {
+        return (data as Map<dynamic, dynamic>).map((key, value) => MapEntry(key.toString(), value));
+      }
+      else {
+        return json.decode(data);
+      }
+    }
+    catch (ex) {
+      print("[AzureB2C] Could not parse channel data: ${ex.toString()}");
+      return null;
+    }
+  }
+
   static Future<void> _methodCallHandler(MethodCall call) async {
     print("[AzureB2C] Callback received...");
+    var rawRes = call.arguments;
+    if (rawRes != null) {
+      final Map<String, dynamic>? res = parseChannelData(call.arguments);
+      if (res != null) {
+        var result = B2COperationResult.fromJson(res);
 
-    var result = Platform.isIOS ?
-      B2COperationResult.fromJson(
-        (call.arguments as Map<dynamic, dynamic>).map((key, value) => MapEntry(key.toString(), value))
-      ) :
-      B2COperationResult.fromJson(json.decode(call.arguments));
+        print("[AzureB2C] Callback data: ${json.encode(result)}");
 
-    print("[AzureB2C] Callback data: ${json.encode(result)}");
-
-    for (var callback in _callbacks[result.source]!) {
-      await callback(result);
+        for (var callback in _callbacks[result.source]!) {
+          await callback(result);
+        }
+      }
     }
   }
 }

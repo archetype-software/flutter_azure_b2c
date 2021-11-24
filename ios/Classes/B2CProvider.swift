@@ -176,7 +176,7 @@ class B2CProvider {
     func getSubjects() -> [String] {
         var subjects: [String] = []
         users!.forEach { user in
-            subjects.append(user.subject!)
+            if let subject = user.subject { subjects.append(subject) }
         }
         return subjects
     }

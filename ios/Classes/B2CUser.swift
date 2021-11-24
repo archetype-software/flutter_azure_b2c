@@ -52,7 +52,10 @@ class B2CUser {
     var claims: [String: Any]? {
         get {
             if accounts.isEmpty { return nil }
-            return accounts.first!.accountClaims
+            // NOTE: It looks like the accountClaims array property on the MSALAccount object
+            // comes back empty. Instead the first tenantProfile object on a given account contains
+            // the expected claims array.
+            return accounts.first!.tenantProfiles?.first?.claims ?? nil
         }
     }
 }
@@ -67,7 +70,7 @@ extension B2CUser {
         accounts.forEach { account in
             /**
              * NOTE: Because B2C treats each policy as a separate authority, the access tokens, refresh tokens, and id tokens returned from each policy are considered logically separate entities.
-             * In practical terms, this means that each policy returns a separate IAccount object whose tokens cannot be used to invoke other policies.
+             * In practical terms, this means that each policy returns a separate MSALAccount object whose tokens cannot be used to invoke other policies.
              *
              * You can use the 'Subject' claim to identify that those accounts belong to the same user.
              */
@@ -107,7 +110,7 @@ extension B2CUser {
      * See https://docs.microsoft.com/en-us/azure/active-directory-b2c/active-directory-b2c-reference-tokens for more info.
      */
     static func getSubjectFromAccount(account: MSALAccount) -> String? {
-        if let claims = account.accountClaims {
+        if let claims = account.tenantProfiles?.first?.claims {
             if let displayName = claims[IDToken.SUBJECT] {
                 return displayName as? String
             }
