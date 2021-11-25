@@ -153,8 +153,50 @@ class B2CProvider {
         )
     }
     
-    func initWebViewParams() {
-        self.webViewParameters = MSALWebviewParameters(authPresentationViewController: controller)
+    /**
+     * Run user flow silently using stored refresh token.
+     *
+     * Once the operation is completed, you will also receive an access token containing the
+     * claims for the scope you passed in, which you can subsequently use to obtain your resources.
+     */
+    func policyTriggerSilently(tag: String, subject: String, policyName: String, scopes: [String]) {
+        if b2cApp == nil { return }
+        
+        if let selectedUser = findB2CUser(subject: subject) {
+            if let authority = getAuthorityFromPolicyName(policyName: policyName, source: B2CProvider.POLICY_TRIGGER_SILENTLY) {
+                selectedUser.acquireTokenSilentAsync(
+                    application: b2cApp!,
+                    policyName: policyName,
+                    authority:authority,
+                    scopes: scopes,
+                    callback: authSilentCallback(tag: tag, source: B2CProvider.POLICY_TRIGGER_SILENTLY)
+                )
+            }
+        }
+    }
+    
+    /**
+     * Sign out user and erases associated tokens
+     *
+     */
+    func signOut(tag: String, subject: String) {
+        if b2cApp == nil { return }
+        if let selectedUser = findB2CUser(subject: subject) {
+            selectedUser.signOutAsync(application: b2cApp!) { success, err in
+                if success {
+                    self.loadAccounts(source: B2CProvider.SIGN_OUT)
+                    self.authResults.removeValue(forKey: subject)
+                }
+                else if let error = err {
+                    print("B2CProvider [\(tag)] Sign Out error: \(error.localizedDescription)")
+                    self.operationListener.onEvent(operationResult: B2COperationResult(
+                        source: B2CProvider.SIGN_OUT,
+                        reason: B2COperationState.CLIENT_ERROR,
+                        data: error.localizedDescription
+                    ))
+                }
+            }
+        }
     }
     
     /**
@@ -332,6 +374,56 @@ class B2CProvider {
                 }
             }
         }
+    }
+    
+    /**
+     * Callback used in for silent acquireToken calls.
+     */
+    private func authSilentCallback(tag: String, source: String) -> MSALCompletionBlock {
+        return { res, err in
+            if let result = res {
+                /* Successfully got a token, use it to call a protected resource - MSGraph */
+                print("[B2CProvider] Successfully authenticated.")
+                /* Stores in memory the access token. Note: refresh token managed by MSAL */
+                if let subject = B2CUser.getSubjectFromAccount(account: result.account) {
+                    self.authResults[subject] = result
+                }
+                // The tenant profile object on the MSALAccount response is usually nil when coming from
+                // an auth flow. It is however set when loading accounts. Thus we have a fallback here
+                // to use the tenantProfile object on the result itself.
+                else if let subject = result.tenantProfile.identifier {
+                    self.authResults[subject] = result
+                }
+                /* Reload account asynchronously to get the up-to-date list. */
+                self.loadAccounts(source: B2CProvider.POLICY_TRIGGER_INTERACTIVE)
+            }
+            
+            if let error = err {
+                if error.localizedDescription.contains(B2CProvider.B2C_PASSWORD_CHANGE) {
+                    self.operationListener.onEvent(operationResult: B2COperationResult(
+                        source: B2CProvider.POLICY_TRIGGER_SILENTLY,
+                        reason: B2COperationState.PASSWORD_RESET,
+                        data: error.localizedDescription
+                    ))
+                }
+                else {
+                    // TODO: We have no real way to distinguish between client and service errors in Swift
+                    // using exception types. We will have to look for specific exception messages in the
+                    // error message. For now we just return every error as a client error, with the full
+                    // error object.
+                    self.operationListener.onEvent(operationResult: B2COperationResult(
+                        source: B2CProvider.POLICY_TRIGGER_SILENTLY,
+                        reason: B2COperationState.CLIENT_ERROR,
+                        data: error.localizedDescription
+                    ))
+                    print("Error: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    private func initWebViewParams() {
+        self.webViewParameters = MSALWebviewParameters(authPresentationViewController: controller)
     }
     
     static let B2C_PASSWORD_CHANGE = "AADB2C90118"

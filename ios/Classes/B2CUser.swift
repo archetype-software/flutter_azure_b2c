@@ -58,6 +58,45 @@ class B2CUser {
             return accounts.first!.tenantProfiles?.first?.claims ?? nil
         }
     }
+    
+    /**
+     * Acquires a token without interrupting the user.
+     */
+    func acquireTokenSilentAsync(application: MSALPublicClientApplication,
+                                 policyName: String,
+                                 authority: MSALB2CAuthority?,
+                                 scopes: [String]?,
+                                 callback: @escaping MSALCompletionBlock) {
+        var policyFound = false
+        accounts.forEach { account in
+            if policyName == B2CUser.getB2CPolicyNameFromAccount(account: account) {
+                let parameters = MSALSilentTokenParameters(scopes: scopes ?? [], account: account)
+                parameters.authority = authority
+                application.acquireTokenSilent(with: parameters, completionBlock: callback)
+                policyFound = true
+                return
+            }
+        }
+        if !policyFound { callback(nil, B2CError.NO_ACCOUNT_FOUND) }
+    }
+    
+    /**
+     * Signs the user out of your application.
+     */
+    func signOutAsync(application: MSALPublicClientApplication, callback: @escaping MSALSignoutCompletionBlock) {
+        DispatchQueue.main.async {
+            do {
+                try self.accounts.forEach { account in
+                    try application.remove(account)
+                }
+                self.accounts.removeAll()
+                callback(true, nil)
+            }
+            catch {
+                callback(true, error)
+            }
+        }
+    }
 }
 
 extension B2CUser {
@@ -92,7 +131,7 @@ extension B2CUser {
      * See https://docs.microsoft.com/en-us/azure/active-directory-b2c/active-directory-b2c-reference-tokens for more info.
      */
     static func getB2CPolicyNameFromAccount(account: MSALAccount) -> String? {
-        if let claims = account.accountClaims {
+        if let claims = account.tenantProfiles?.first?.claims {
             if let policy = claims["tfp"] {
                 return policy as? String
             }

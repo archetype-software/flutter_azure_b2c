@@ -67,6 +67,36 @@ public class SwiftFlutterAzureB2cPlugin: NSObject, FlutterPlugin, IB2COperationL
             result(nil)
         }
         
+        else if call.method == "policyTriggerSilently" {
+            let args = call.arguments as! [String: AnyObject]
+            let subject = args["subject"] as! String
+            let tag = args["tag"] as! String
+            let policyName = args["policyName"] as! String
+            let scopes = args["scopes"] as! [String]
+            
+            if provider.hasSubject(subject: subject) {
+                provider.policyTriggerSilently(tag: tag, subject: subject, policyName: policyName, scopes: scopes)
+                result(nil)
+            }
+            else {
+                // result.error("SubjectNotExist", "Unable to find stored user: $subject", null)
+            }
+        }
+        
+        else if call.method == "signOut" {
+            let args = call.arguments as! [String: AnyObject]
+            let subject = args["subject"] as! String
+            let tag = args["tag"] as! String
+            
+            if provider.hasSubject(subject: subject) {
+                provider.signOut(tag: tag, subject: subject)
+                result(nil)
+            }
+            else {
+                // result.error("SubjectNotExist", "Unable to find stored user: $subject", null)
+            }
+        }
+        
         else if call.method == "getConfiguration" {
             let configuration: B2CConfigurationIOS = provider.getConfiguration()
             result(configuration.toDictionary())
