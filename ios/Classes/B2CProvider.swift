@@ -44,7 +44,7 @@ class B2CProvider {
     /**
      * Init B2C application. It looks for existing accounts and retrieves information.
      */
-    func initMSAL(fileName: String) {
+    func initMSAL(tag: String, fileName: String) {
         if let path = Bundle.main.path(forResource: fileName, ofType: "json") {
             do {
                 let data = try Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe)
@@ -99,13 +99,14 @@ class B2CProvider {
                         })
                         
                         self.b2cApp = try MSALPublicClientApplication(configuration: msalConfiguration)
-                        self.setHostAndTenantFromAuthority(authority: b2cApp!.configuration.authority)
+                        self.setHostAndTenantFromAuthority(tag: tag, authority: b2cApp!.configuration.authority)
                         
                         self.initWebViewParams()
-                        self.loadAccounts(source: B2CProvider.INIT)
+                        self.loadAccounts(tag: tag, source: B2CProvider.INIT)
                     }
                     else {
                         operationListener.onEvent(operationResult: B2COperationResult(
+                            tag: tag,
                             source: B2CProvider.INIT,
                             reason: B2COperationState.CLIENT_ERROR,
                             data: "No authority URLs specified in configuration JSON file."
@@ -114,6 +115,7 @@ class B2CProvider {
                 }
                 else {
                     operationListener.onEvent(operationResult: B2COperationResult(
+                        tag: tag,
                         source: B2CProvider.INIT,
                         reason: B2COperationState.CLIENT_ERROR,
                         data: "Configuration JSON could not be parsed. Please ensure JSON is valid."
@@ -122,6 +124,7 @@ class B2CProvider {
             }
             catch {
                 operationListener.onEvent(operationResult: B2COperationResult(
+                    tag: tag,
                     source: B2CProvider.INIT,
                     reason: B2COperationState.CLIENT_ERROR,
                     data: error.localizedDescription
@@ -136,20 +139,24 @@ class B2CProvider {
      * Once the user finishes with the flow, you will also receive an access token containing the
      * claims for the scope you passed in, which you can subsequently use to obtain your resources.
      */
-    func policyTriggerInteractive(policyName: String, scopes: [String], loginHint: String?) {
+    func policyTriggerInteractive(tag: String, policyName: String, scopes: [String], loginHint: String?) {
         guard let b2cApp = self.b2cApp else { return }
         guard let webViewParameters = self.webViewParameters else { return }
         
         let parameters = MSALInteractiveTokenParameters(scopes: scopes, webviewParameters: webViewParameters)
         parameters.promptType = .login
         parameters.loginHint = loginHint
-        if let authority = getAuthorityFromPolicyName(policyName: policyName, source: B2CProvider.POLICY_TRIGGER_INTERACTIVE) {
+        if let authority = getAuthorityFromPolicyName(
+            tag: tag,
+            policyName: policyName,
+            source: B2CProvider.POLICY_TRIGGER_INTERACTIVE
+        ) {
             parameters.authority = authority
         }
         
         b2cApp.acquireToken(
             with: parameters,
-            completionBlock: authInteractiveCallback(source: B2CProvider.POLICY_TRIGGER_INTERACTIVE)
+            completionBlock: authInteractiveCallback(tag: tag)
         )
     }
     
@@ -163,13 +170,17 @@ class B2CProvider {
         if b2cApp == nil { return }
         
         if let selectedUser = findB2CUser(subject: subject) {
-            if let authority = getAuthorityFromPolicyName(policyName: policyName, source: B2CProvider.POLICY_TRIGGER_SILENTLY) {
+            if let authority = getAuthorityFromPolicyName(
+                tag: tag,
+                policyName: policyName,
+                source: B2CProvider.POLICY_TRIGGER_SILENTLY
+            ) {
                 selectedUser.acquireTokenSilentAsync(
                     application: b2cApp!,
                     policyName: policyName,
                     authority:authority,
                     scopes: scopes,
-                    callback: authSilentCallback(tag: tag, source: B2CProvider.POLICY_TRIGGER_SILENTLY)
+                    callback: authSilentCallback(tag: tag)
                 )
             }
         }
@@ -184,12 +195,13 @@ class B2CProvider {
         if let selectedUser = findB2CUser(subject: subject) {
             selectedUser.signOutAsync(application: b2cApp!) { success, err in
                 if success {
-                    self.loadAccounts(source: B2CProvider.SIGN_OUT)
+                    self.loadAccounts(tag: tag, source: B2CProvider.SIGN_OUT)
                     self.authResults.removeValue(forKey: subject)
                 }
                 else if let error = err {
                     print("B2CProvider [\(tag)] Sign Out error: \(error.localizedDescription)")
                     self.operationListener.onEvent(operationResult: B2COperationResult(
+                        tag: tag,
                         source: B2CProvider.SIGN_OUT,
                         reason: B2COperationState.CLIENT_ERROR,
                         data: error.localizedDescription
@@ -272,7 +284,7 @@ class B2CProvider {
     /**
      * Load signed-in accounts, if there are any present.
      */
-    private func loadAccounts(source: String) {
+    private func loadAccounts(tag: String, source: String) {
         if (b2cApp == nil) { return }
         
         let msalParameters = MSALAccountEnumerationParameters()
@@ -284,6 +296,7 @@ class B2CProvider {
                 print("[AzureB2C] Error loading accounts. Please ensure you have added keychain " +
                       "group com.microsoft.adalcache to your project's entitlements")
                 self.operationListener.onEvent(operationResult: B2COperationResult(
+                    tag: tag,
                     source: source,
                     reason: B2COperationState.CLIENT_ERROR,
                     data: error.localizedDescription
@@ -293,12 +306,14 @@ class B2CProvider {
             if let accounts = accs {
                 self.users = B2CUser.getB2CUsersFromAccountList(accounts: accounts)
                 self.operationListener.onEvent(operationResult: B2COperationResult(
+                    tag: tag,
                     source: source,
                     reason: B2COperationState.SUCCESS,
                     data: nil
                 ))
             }
             self.operationListener.onEvent(operationResult: B2COperationResult(
+                tag: tag,
                 source: source,
                 reason: B2COperationState.SUCCESS,
                 data: nil
@@ -306,13 +321,14 @@ class B2CProvider {
         }
     }
     
-    private func setHostAndTenantFromAuthority(authority: MSALAuthority) {
+    private func setHostAndTenantFromAuthority(tag: String, authority: MSALAuthority) {
         let parts = authority.url.absoluteString.split(usingRegex: "https://|/")
         hostName = parts[1]
         tenantName = parts[2]
+        print("B2CProvider [\(tag)] host: \(hostName ?? "nil"), tenant: \(tenantName ?? "nil")")
     }
     
-    private func getAuthorityFromPolicyName(policyName: String, source: String) -> MSALB2CAuthority? {
+    private func getAuthorityFromPolicyName(tag: String, policyName: String, source: String) -> MSALB2CAuthority? {
         do {
             let urlString = "https://\(hostName!)/\(tenantName!)/\(policyName)/"
             let authorityURL = URL(string: urlString)!
@@ -320,6 +336,7 @@ class B2CProvider {
         }
         catch {
             self.operationListener.onEvent(operationResult: B2COperationResult(
+                tag: tag,
                 source: source,
                 reason: B2COperationState.CLIENT_ERROR,
                 data: error.localizedDescription
@@ -333,7 +350,7 @@ class B2CProvider {
      * If succeeds we use the access token to call the Microsoft Graph.
      * Does not check cache.
      */
-    private func authInteractiveCallback(source: String) -> MSALCompletionBlock {
+    private func authInteractiveCallback(tag: String) -> MSALCompletionBlock {
         return { res, err in
             if let result = res {
                 /* Successfully got a token, use it to call a protected resource - MSGraph */
@@ -349,12 +366,13 @@ class B2CProvider {
                     self.authResults[subject] = result
                 }
                 /* Reload account asynchronously to get the up-to-date list. */
-                self.loadAccounts(source: B2CProvider.POLICY_TRIGGER_INTERACTIVE)
+                self.loadAccounts(tag: tag, source: B2CProvider.POLICY_TRIGGER_INTERACTIVE)
             }
             
             if let error = err {
                 if error.localizedDescription.contains(B2CProvider.B2C_PASSWORD_CHANGE) {
                     self.operationListener.onEvent(operationResult: B2COperationResult(
+                        tag: tag,
                         source: B2CProvider.POLICY_TRIGGER_INTERACTIVE,
                         reason: B2COperationState.PASSWORD_RESET,
                         data: error.localizedDescription
@@ -366,6 +384,7 @@ class B2CProvider {
                     // error message. For now we just return every error as a client error, with the full
                     // error object.
                     self.operationListener.onEvent(operationResult: B2COperationResult(
+                        tag: tag,
                         source: B2CProvider.POLICY_TRIGGER_INTERACTIVE,
                         reason: B2COperationState.CLIENT_ERROR,
                         data: error.localizedDescription
@@ -379,7 +398,7 @@ class B2CProvider {
     /**
      * Callback used in for silent acquireToken calls.
      */
-    private func authSilentCallback(tag: String, source: String) -> MSALCompletionBlock {
+    private func authSilentCallback(tag: String) -> MSALCompletionBlock {
         return { res, err in
             if let result = res {
                 /* Successfully got a token, use it to call a protected resource - MSGraph */
@@ -395,12 +414,13 @@ class B2CProvider {
                     self.authResults[subject] = result
                 }
                 /* Reload account asynchronously to get the up-to-date list. */
-                self.loadAccounts(source: B2CProvider.POLICY_TRIGGER_INTERACTIVE)
+                self.loadAccounts(tag: tag, source: B2CProvider.POLICY_TRIGGER_SILENTLY)
             }
             
             if let error = err {
                 if error.localizedDescription.contains(B2CProvider.B2C_PASSWORD_CHANGE) {
                     self.operationListener.onEvent(operationResult: B2COperationResult(
+                        tag: tag,
                         source: B2CProvider.POLICY_TRIGGER_SILENTLY,
                         reason: B2COperationState.PASSWORD_RESET,
                         data: error.localizedDescription
@@ -412,6 +432,7 @@ class B2CProvider {
                     // error message. For now we just return every error as a client error, with the full
                     // error object.
                     self.operationListener.onEvent(operationResult: B2COperationResult(
+                        tag: tag,
                         source: B2CProvider.POLICY_TRIGGER_SILENTLY,
                         reason: B2COperationState.CLIENT_ERROR,
                         data: error.localizedDescription

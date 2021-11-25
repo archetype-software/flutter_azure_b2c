@@ -46,11 +46,13 @@ extension B2COperationState {
 
 class B2COperationResult {
     
+    var tag: String
     var source: String
     var reason: B2COperationState
     var data: Any? = nil
     
-    init(source: String, reason: B2COperationState, data: Any?) {
+    init(tag: String, source: String, reason: B2COperationState, data: Any?) {
+        self.tag = tag
         self.source = source
         self.reason = reason
         self.data = data
@@ -61,7 +63,7 @@ class B2COperationResult {
             "source": source,
             "reason": reason.toString(),
             "data": data ?? "",
-            "tag": "tag"
+            "tag": tag
         ]
     }
 }

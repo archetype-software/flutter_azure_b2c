@@ -49,7 +49,8 @@ public class SwiftFlutterAzureB2cPlugin: NSObject, FlutterPlugin, IB2COperationL
         else if call.method == "init" {
             let args = call.arguments as! [String: AnyObject]
             let configFile = args["configFile"] as! String
-            provider.initMSAL(fileName: configFile)
+            let tag = args["tag"] as! String
+            provider.initMSAL(tag: tag, fileName: configFile)
             result(nil)
         }
         
@@ -57,13 +58,14 @@ public class SwiftFlutterAzureB2cPlugin: NSObject, FlutterPlugin, IB2COperationL
             let args = call.arguments as! [String: AnyObject]
             let policyName = args["policyName"] as! String
             let scopes = args["scopes"] as! [String]
+            let tag = args["tag"] as! String
             var loginHint: String? = nil
             
             if (args.contains(where: { key, value in return key == "loginHint" }) && args["loginHint"] != nil) {
                 loginHint = args["loginHint"] as? String
             }
             
-            provider.policyTriggerInteractive(policyName: policyName, scopes: scopes, loginHint: loginHint)
+            provider.policyTriggerInteractive(tag: tag, policyName: policyName, scopes: scopes, loginHint: loginHint)
             result(nil)
         }
         
