@@ -105,6 +105,7 @@ class B2CProvider {
                         self.loadAccounts(tag: tag, source: B2CProvider.INIT)
                     }
                     else {
+                        print("[B2CProvider] No authority URLs specified in configuration JSON file.")
                         operationListener.onEvent(operationResult: B2COperationResult(
                             tag: tag,
                             source: B2CProvider.INIT,
@@ -114,6 +115,7 @@ class B2CProvider {
                     }
                 }
                 else {
+                    print("[B2CProvider] Configuration JSON could not be parsed. Please ensure JSON is valid.")
                     operationListener.onEvent(operationResult: B2COperationResult(
                         tag: tag,
                         source: B2CProvider.INIT,
@@ -123,6 +125,7 @@ class B2CProvider {
                 }
             }
             catch {
+                print("[B2CProvider] Unexpected error: \(error.localizedDescription)")
                 operationListener.onEvent(operationResult: B2COperationResult(
                     tag: tag,
                     source: B2CProvider.INIT,
@@ -293,7 +296,7 @@ class B2CProvider {
         
         b2cApp!.accountsFromDevice(for: msalParameters) { accs, err in
             if let error = err {
-                print("[AzureB2C] Error loading accounts. Please ensure you have added keychain " +
+                print("[B2CProvider] Error loading accounts. Please ensure you have added keychain " +
                       "group com.microsoft.adalcache to your project's entitlements")
                 self.operationListener.onEvent(operationResult: B2COperationResult(
                     tag: tag,
