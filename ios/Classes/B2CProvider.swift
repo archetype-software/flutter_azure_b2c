@@ -203,6 +203,24 @@ class B2CProvider {
         return subUser?.username ?? nil
     }
     
+    /**
+     * Get the last access token obtained for the user.
+     * @return the accessToken or null if user is not logged in
+     */
+    func getAccessToken(subject: String) -> String? {
+        if !authResults.contains(where: { key, value in key == subject }) { return nil }
+        return authResults[subject]!.accessToken
+    }
+    
+    /**
+     * Get the expire date of the last access token obtained for the user.
+     * @return the expire date or null if user is not logged in
+     */
+    func getAccessTokenExpireDate(subject: String) -> Date? {
+        if !authResults.contains(where: { key, value in key == subject }) { return nil }
+        return authResults[subject]!.expiresOn
+    }
+    
     private func findB2CUser(subject: String) -> B2CUser? {
         return users!.first { user in
             return user.subject == subject
@@ -282,6 +300,12 @@ class B2CProvider {
                 if let subject = B2CUser.getSubjectFromAccount(account: result.account) {
                     self.authResults[subject] = result
                 }
+                // The tenant profile object on the MSALAccount response is usually nil when coming from
+                // an auth flow. It is however set when loading accounts. Thus we have a fallback here
+                // to use the tenantProfile object on the result itself.
+                else if let subject = result.tenantProfile.identifier {
+                    self.authResults[subject] = result
+                }
                 /* Reload account asynchronously to get the up-to-date list. */
                 self.loadAccounts(source: B2CProvider.POLICY_TRIGGER_INTERACTIVE)
             }
@@ -315,14 +339,4 @@ class B2CProvider {
     static let POLICY_TRIGGER_SILENTLY = "policy_trigger_silently"
     static let POLICY_TRIGGER_INTERACTIVE = "policy_trigger_interactive"
     static let SIGN_OUT = "sign_out"
-}
-
-extension String {
-    
-    func split(usingRegex pattern: String) -> [String] {
-        let regex = try! NSRegularExpression(pattern: pattern)
-        let matches = regex.matches(in: self, range: NSRange(0..<utf16.count))
-        let ranges = [startIndex..<startIndex] + matches.map{Range($0.range, in: self)!} + [endIndex..<endIndex]
-        return (0...matches.count).map {String(self[ranges[$0].upperBound..<ranges[$0+1].lowerBound])}
-    }
 }
