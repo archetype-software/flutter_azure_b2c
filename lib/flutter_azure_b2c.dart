@@ -402,7 +402,10 @@ class AzureB2C {
       if (res != null) {
         var result = B2COperationResult.fromJson(res);
 
-        print("[AzureB2C] Callback data: ${json.encode(result)}");
+        print("[AzureB2C] Callback: ${json.encode(result)}");
+        if (result.data != null) {
+          print("[AzureB2C] Callback data: ${json.encode(result.data)}");
+        }
 
         for (var callback in _callbacks[result.source]!) {
           await callback(result);
