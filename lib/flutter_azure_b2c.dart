@@ -395,7 +395,7 @@ class AzureB2C {
   }
 
   static Future<void> _methodCallHandler(MethodCall call) async {
-    print("[AzureB2C] Callback received...");
+    print("[AzureB2C] Callback received... ${call.arguments.toString()}");
     var rawRes = call.arguments;
     if (rawRes != null) {
       final Map<String, dynamic>? res = parseChannelData(call.arguments);
